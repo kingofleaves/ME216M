@@ -5,10 +5,10 @@
 
 #define I2C 0x3C
 
-#define WIFISSID "LOFT"
-#define PASSWORD "loftloft"
+#define WIFISSID "kingofleaves"
+#define PASSWORD "19940428"
 
-#define WORLDCLOCKAPIKEY "/api/json/est/now"
+#define WORLDCLOCKAPIKEY "/api/json/utc/now"
 #define WCDOMAINNAME "worldclockapi.com"
 
 // your network SSID (name)

@@ -36,7 +36,7 @@ void setIncrementFromCurrent(int *targetHSV, unsigned long targetTime, int *incr
 void changeColorOverTime(int hueIncrement, int satIncrement, int valIncrement, unsigned long timeIncrement) 
 {
   if (timerColor > timeIncrement) {
-    timerColor -= timerIncrement;
+    timerColor -= timeIncrement;
     hue += hueIncrement;
     sat += satIncrement;
     val += valIncrement;
