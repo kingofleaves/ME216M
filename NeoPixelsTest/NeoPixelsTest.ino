@@ -24,7 +24,7 @@ void loop() {
   delay(10);
   if(hue < 100) sat++;
   else sat--;
-  if (sat == 0) hue = 20; 
+  if (sat == 0) hue = 30; 
   if (sat == 255) hue = 180;
 }
 
