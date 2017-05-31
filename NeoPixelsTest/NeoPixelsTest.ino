@@ -2,7 +2,8 @@
 #include "FastLED.h"
 #include <elapsedMillis.h>
 
-#define PIN_DATA 6
+#define LED_TYPE NEOPIXEL
+#define LED_PIN_DATA 6
 #define NUM_LEDS 100
 
   
@@ -14,8 +15,10 @@ CRGB leds[NUM_LEDS];
 elapsedMillis timerColor;
 
 void setup() { 
-  FastLED.addLeds<NEOPIXEL, 6>(leds, NUM_LEDS); 
-
+  delay( 3000 ); // power-up safety delay
+  
+  FastLED.addLeds<LED_TYPE, LED_PIN_DATA>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.setBrightness(  BRIGHTNESS );
   timerColor = 0;
   }
 void loop() { 

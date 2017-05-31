@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 #define LED_PIN     6
-#define NUM_LEDS    30
+#define NUM_LEDS    150
 #define BRIGHTNESS  96
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
@@ -66,7 +66,7 @@ void loop()
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
 {
-  uint8_t brightness = 255;
+  uint8_t brightness = 64;
   
   for( int i = 0; i < NUM_LEDS; i++) {
     leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i*16), brightness);
@@ -84,14 +84,16 @@ void ChangePalettePeriodically()
     lastSecond = secondHand;
     CRGB p = CHSV( HUE_PURPLE, 255, 255);
     CRGB g = CHSV( HUE_GREEN, 255, 255);
+    CRGB o = CHSV( HUE_ORANGE, 255, 255);
     CRGB b = CRGB::Black;
     CRGB w = CRGB::White;
-    if( secondHand ==  0)  { targetPalette = RainbowColors_p; }
-    if( secondHand == 10)  { targetPalette = CRGBPalette16( g,g,b,b, p,p,b,b, g,g,b,b, p,p,b,b); }
-    if( secondHand == 20)  { targetPalette = CRGBPalette16( b,b,b,w, b,b,b,w, b,b,b,w, b,b,b,w); }
-    if( secondHand == 30)  { targetPalette = LavaColors_p; }
-    if( secondHand == 40)  { targetPalette = CloudColors_p; }
-    if( secondHand == 50)  { targetPalette = PartyColors_p; }
+    if( secondHand ==  0)  { targetPalette = CRGBPalette16( w,w,w,w, w,w,w,w, w,w,w,w, w,w,w,w); }
+    if( secondHand == 10)  { targetPalette = CRGBPalette16( o,o,o,o, o,o,o,o, o,o,o,o, o,o,o,o); }
+    if( secondHand == 20)  { targetPalette = CRGBPalette16( w,w,w,w, w,w,w,w, w,w,w,w, w,w,w,w); }
+    if( secondHand == 30)  { targetPalette = CRGBPalette16( o,o,o,o, o,o,o,o, o,o,o,o, o,o,o,o); }
+    if( secondHand == 40)  { targetPalette = CRGBPalette16( w,w,w,w, w,w,w,w, w,w,w,w, w,w,w,w); }
+    if( secondHand == 50)  { targetPalette = CRGBPalette16( o,o,o,o, o,o,o,o, o,o,o,o, o,o,o,o); }
+//    targetPalette = CRGBPalette16( o,o,o,o, o,o,o,o, o,o,o,o, o,o,o,o);
   }
 }
 
