@@ -6,6 +6,7 @@
 #define LED_PIN_DATA 6
 #define NUM_LEDS 100
 
+#define BRIGHTNESS 128
   
 uint8_t hue = 180;
 uint8_t sat = 0;
