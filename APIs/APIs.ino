@@ -142,10 +142,10 @@ void setReadyForTimeUpdate() {
 void printCurrLatLong(void) {
   Serial.println("Our current Latitude and Longitude is: ");
   Serial.print("\t");
-  Serial.print(abs(lat));
-  Serial.print(lat < 0 ? "S" : "N");
+  Serial.print(abs(lat.toFloat()));
+  Serial.print(lat.toFloat() < 0 ? "S" : "N");
   Serial.print(", ");
-  Serial.print(abs(lon));
-  Serial.print(lon < 0 ? "W" : "E");
+  Serial.print(abs(lon.toFloat()));
+  Serial.print(lon.toFloat() < 0 ? "W" : "E");
   Serial.println();
 }
