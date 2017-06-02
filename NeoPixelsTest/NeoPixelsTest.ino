@@ -2,11 +2,14 @@
 
 #define LED_TYPE NEOPIXEL
 #define LED_PIN_DATA 6
-#define NUM_LEDS 150
+#define NUM_LEDS 60
 
 #define INITIAL_BRIGHTNESS 64
 
-#define TIME_TO_EXTEND 1000 // in milliseconds
+#define TIME_TO_EXTEND 10000 // in milliseconds
+#define TIME_TO_DISABLE 10000 // in milliseconds
+
+#define BLEND_INTERVAL 10 // in milliseconds
   
 uint8_t hue = 180;
 uint8_t sat = 0;
@@ -22,8 +25,8 @@ bool state_DISABLE;
 bool state_EXTEND;
 
 // variables for each mode
-float disableTimeEnd;
-float extendTimeEnd;
+unsigned long disableTimeEnd;
+unsigned long extendTimeEnd;
 
 
 // Debug States
@@ -58,7 +61,7 @@ void setup() {
   brightness = INITIAL_BRIGHTNESS;  
   FastLED.setBrightness( brightness );
 
-  currentPalette = offPalette; // color of LEDs are currently all black (off).
+  currentPalette = whitePalette; // color of LEDs start with white.
   targetPalette = offPalette; // color of LEDs are approaching all black (off).
 
   state_ON = false; // lamp is currently off.
@@ -69,9 +72,11 @@ void setup() {
   currTime = 0;
 }
 
-void loop() { 
+void loop() {  
+  currTime = millis(); 
   checkForInputs();
   handleComputation();
+  FastLED.show();
   //debug();
 }
 
@@ -95,17 +100,14 @@ void handleComputation(void)
   // NOT IMPLEMENTED YET
   // check for states and do appropriate stuff
   // set target palettes and change color based on time.
-  
-  
-  static uint8_t startIndex = 0;
 
-  if ((millis() - currTime) > 10) {
-    changeColorOverTime();  
-    FillLEDsFromPaletteColors(startIndex++);
-    FastLED.show();
+  setPaletteFromTime();
 
-    currTime += 10;
-  }
+  checkDisable();
+  checkExtend();
+
+  changeColorOverTime();  
+
 }
 
 //////////////////////////////////////////
@@ -126,12 +128,6 @@ bool onoffButtonPressed(void)
 
 void respond_to_onoffButton(void)
 {
-  if (state_ON) {
-    targetPalette = offPalette;
-  }
-  else {
-    setPaletteFromTime();
-  }
   state_ON = !state_ON;
 }
 
@@ -160,10 +156,18 @@ bool disableButtonPressed(void)
 
 void respond_to_disableButton(void)
 {
-  state_EXTEND = true;
-  extendTimeEnd = millis() + TIME_TO_EXTEND;
+  state_DISABLE = true;
+  disableTimeEnd = currTime + TIME_TO_DISABLE;
 }
 
+void checkDisable(void)
+{
+  if (state_DISABLE) {
+    if (currTime > disableTimeEnd) {
+      state_DISABLE = false;
+    }
+  }
+}
 
 //////////////////////////////////////////
 //                                      //
@@ -191,7 +195,16 @@ bool extendButtonPressed(void)
 void respond_to_extendButton(void)
 {
   state_EXTEND = true;
-  extendTimeEnd = millis() + TIME_TO_EXTEND;
+  extendTimeEnd = currTime + TIME_TO_EXTEND;
+}
+
+void checkExtend(void)
+{
+  if (state_EXTEND) {
+    if (currTime > extendTimeEnd) {
+      state_EXTEND = false;
+    }
+  }
 }
 
 //////////////////////////////////////////
@@ -226,16 +239,25 @@ void setBlendSpeed(uint8_t newSpeed)
   blendSpeed = newSpeed;
 }
 
-void changeColorOverTime() 
+void changeColorOverTime(void) 
 {
   // blendSpeed ranges from 0 to 48, with 48 being the fastest, 1 being the slowest, and 0 meaning no change.
-  nblendPaletteTowardPalette(currentPalette, targetPalette, blendSpeed);
+  static uint8_t startIndex = 0;
+  static long lastBlend = millis();
+  if ((millis() - lastBlend) > BLEND_INTERVAL) {
+    nblendPaletteTowardPalette(currentPalette, targetPalette, blendSpeed);
+    FillLEDsFromPaletteColors(startIndex++);
+    lastBlend += BLEND_INTERVAL;
+  }
 }
 
 void setPaletteFromTime(void)
-{
+{ 
   // NOT IMPLEMENTED YET
-  targetPalette = whitePalette;
+  if (state_DISABLE) targetPalette = whitePalette;
+  else if (!state_ON) targetPalette = offPalette;
+  else targetPalette = orangePalette;
+  
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
