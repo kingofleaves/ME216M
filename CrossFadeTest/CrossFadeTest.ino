@@ -28,11 +28,12 @@ CRGB leds[NUM_LEDS];
 
 
 CRGBPalette16 currentPalette( CRGB::Black);
-
-CRGBPalette16 targetPalette( PartyColors_p );
+CRGB w = CRGB::White;
+CRGBPalette16 targetPalette = CRGBPalette16( w,w,w,w, w,w,w,w, w,w,w,w, w,w,w,w);
 
 
 void setup() {
+  Serial.begin(115200);
   delay( 3000 ); // power-up safety delay
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
   FastLED.setBrightness(  BRIGHTNESS );
@@ -58,6 +59,7 @@ void loop()
 
   static uint8_t startIndex = 0;
   startIndex = startIndex + 1; /* motion speed */
+  Serial.println(startIndex);
   FillLEDsFromPaletteColors( startIndex);
 
   FastLED.show();
