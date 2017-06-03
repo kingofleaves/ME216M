@@ -1,16 +1,17 @@
+#define FASTLED_ESP8266_RAW_PIN_ORDER
 #include <FastLED.h>
 
 #define LED_TYPE NEOPIXEL
-#define LED_PIN_DATA 6
+#define LED_PIN_DATA 2
 #define NUM_LEDS 60
 
-#define INITIAL_BRIGHTNESS 64
+#define INITIAL_BRIGHTNESS 128
 
 #define TIME_TO_EXTEND 10000 // in milliseconds
 #define TIME_TO_DISABLE 10000 // in milliseconds
 
-#define BLEND_INTERVAL 10 // in milliseconds
-  
+#define BLEND_INTERVAL 100 // in milliseconds
+
 uint8_t hue = 180;
 uint8_t sat = 0;
 uint8_t val = 100;
@@ -44,21 +45,21 @@ CRGB o = CHSV( HUE_ORANGE, 255, 255);
 CRGB b = CRGB::Blue;
 
 // Color Palettes
-CRGBPalette16 offPalette = CRGBPalette16( x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x );
-CRGBPalette16 whitePalette = CRGBPalette16( w,w,w,w, w,w,w,w, w,w,w,w, w,w,w,w );
-CRGBPalette16 orangePalette = CRGBPalette16( o,o,o,o, o,o,o,o, o,o,o,o, o,o,o,o );
-CRGBPalette16 bluePalette = CRGBPalette16( b,b,b,b, b,b,b,b, b,b,b,b, b,b,b,b );
+CRGBPalette16 offPalette = CRGBPalette16( x, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x );
+CRGBPalette16 whitePalette = CRGBPalette16( w, w, w, w, w, w, w, w, w, w, w, w, w, w, w, w );
+CRGBPalette16 orangePalette = CRGBPalette16( o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o );
+CRGBPalette16 bluePalette = CRGBPalette16( b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b );
 
 CRGBPalette16 currentPalette;
 CRGBPalette16 targetPalette;
 
 
-void setup() { 
+void setup() {
   Serial.begin(115200);
   delay( 3000 ); // power-up safety delay
 
   FastLED.addLeds<LED_TYPE, LED_PIN_DATA>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  brightness = INITIAL_BRIGHTNESS;  
+  brightness = INITIAL_BRIGHTNESS;
   FastLED.setBrightness( brightness );
 
   currentPalette = whitePalette; // color of LEDs start with white.
@@ -72,9 +73,10 @@ void setup() {
   currTime = 0;
 }
 
-void loop() {  
-  currTime = millis(); 
+void loop() {
+  currTime = millis();
   checkForInputs();
+  serialEvent();
   handleComputation();
   FastLED.show();
   //debug();
@@ -82,9 +84,9 @@ void loop() {
 
 void debug(void)
 {
-  if(state_ON) Serial.println("STATE ON");
-  if(state_DISABLE) Serial.println("STATE DISABLE");
-  if(state_EXTEND) Serial.println("STATE EXTEND");
+  if (state_ON) Serial.println("STATE ON");
+  if (state_DISABLE) Serial.println("STATE DISABLE");
+  if (state_EXTEND) Serial.println("STATE EXTEND");
 }
 
 void checkForInputs(void)
@@ -106,7 +108,7 @@ void handleComputation(void)
   checkDisable();
   checkExtend();
 
-  changeColorOverTime();  
+  changeColorOverTime();
 
 }
 
@@ -221,11 +223,11 @@ void checkExtend(void)
 
 void updateBrightnessFromInput(void)
 {
-    uint8_t newBrightness = getBrightnessValue();
-    if (abs(newBrightness - brightness) > 10) {
-      brightness = newBrightness;
-      FastLED.setBrightness( brightness );
-    }
+  uint8_t newBrightness = getBrightnessValue();
+  if (abs(newBrightness - brightness) > 10) {
+    brightness = newBrightness;
+    FastLED.setBrightness( brightness );
+  }
 }
 
 //////////////////////////////////////////
@@ -239,7 +241,7 @@ void setBlendSpeed(uint8_t newSpeed)
   blendSpeed = newSpeed;
 }
 
-void changeColorOverTime(void) 
+void changeColorOverTime(void)
 {
   // blendSpeed ranges from 0 to 48, with 48 being the fastest, 1 being the slowest, and 0 meaning no change.
   static uint8_t startIndex = 0;
@@ -252,18 +254,18 @@ void changeColorOverTime(void)
 }
 
 void setPaletteFromTime(void)
-{ 
+{
   // NOT IMPLEMENTED YET
-  if (state_DISABLE) targetPalette = whitePalette;
-  else if (!state_ON) targetPalette = offPalette;
+  if (!state_ON) targetPalette = offPalette;
+  else if (state_DISABLE) targetPalette = whitePalette;
   else targetPalette = orangePalette;
-  
+
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
-{  
-  for( int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i*16), brightness);
+{
+  for ( int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i * 16), brightness);
     colorIndex += 3;
   }
 }
@@ -293,32 +295,35 @@ void switchToNightSettings(void)
 // Debugging with Serial
 void serialEvent() {
 
-  char c = (char)Serial.read();
+  if (Serial.available() > 0) {
+    char c = (char)Serial.read();
+    Serial.print("Read the character: ");
+    Serial.println(c);
+    switch (c)
+    {
+      case 'o':
+        onoff = true;
+        break;
+      case 'd':
+        disable = true;
+        break;
+      case 'm':
+        switchToNightSettings();
+        break;
+      case 's':
+        switchToDaySettings();
+        break;
+      case '+':
+        blendSpeed++;
+        break;
+      case '-':
+        blendSpeed--;
+        break;
 
-  switch (c)
-  {
-    case 'o': 
-      onoff = true; 
-      break;
-    case 'd': 
-      disable = true;
-      break;
-    case 'm':
-      switchToNightSettings();
-      break;
-    case 's':
-      switchToDaySettings();
-      break;
-    case '+':
-      blendSpeed++;
-      break;
-    case '-':
-      blendSpeed--;
-      break;
-      
-    default:
-      Serial.println("Not a valid command.");
-      break;
+      default:
+        Serial.println("Not a valid command.");
+        break;
+    }
   }
 }
 
