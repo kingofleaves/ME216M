@@ -2,6 +2,7 @@
 #include <FastLED.h>
 #include "Wire.h"
 
+
 // I2Cdev and MPU9250 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
@@ -15,8 +16,8 @@ MPU9250 accelgyro;
 I2Cdev   I2C_M;
 
 // I2C Pin Designations
-#define SDA 12
-#define SCL 14
+#define SDA 4
+#define SCL 5
 
 uint8_t buffer_m[6];
 
