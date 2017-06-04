@@ -30,7 +30,6 @@ float Axyz[3];
 #define sample_num_mdate  5000      
 
 
-
 // LED Defs
 #define LED_TYPE NEOPIXEL
 #define LED_PIN_DATA 2
@@ -42,6 +41,8 @@ float Axyz[3];
 #define TIME_TO_DISABLE 10000 // in milliseconds
 
 #define BLEND_INTERVAL 10 // in milliseconds
+#define GRADUAL_BLEND 10  // 1-48 with 48 being fastest
+#define QUICK_BLEND 24    // 1-48 with 48 being fastest
 
 uint8_t hue = 180;
 uint8_t sat = 0;
@@ -80,9 +81,16 @@ CRGBPalette16 offPalette = CRGBPalette16( x, x, x, x, x, x, x, x, x, x, x, x, x,
 CRGBPalette16 whitePalette = CRGBPalette16( w, w, w, w, w, w, w, w, w, w, w, w, w, w, w, w );
 CRGBPalette16 orangePalette = CRGBPalette16( o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o );
 CRGBPalette16 bluePalette = CRGBPalette16( b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b );
+CRGBPalette16 sunrisePalette = whitePalette;
+CRGBPalette16 sunsetPalette = orangePalette;
+
 
 CRGBPalette16 currentPalette;
 CRGBPalette16 targetPalette;
+
+// API stuff
+long timeSunrise = 0;
+long timeSunset = 100000;
 
 
 void setup() {
@@ -144,7 +152,7 @@ void handleComputation(void)
   // check for states and do appropriate stuff
   // set target palettes and change color based on time.
 
-  setPaletteFromTime();
+  setTargetPalette();
 
   checkDisable();
   checkExtend();
@@ -309,6 +317,7 @@ void changeColorOverTime(void)
   // blendSpeed ranges from 0 to 48, with 48 being the fastest, 1 being the slowest, and 0 meaning no change.
   static uint8_t startIndex = 0;
   static long lastBlend = millis();
+  if (millis() < lastBlend) lastBlend = millis(); // So this can run over the capacity of millis i.e. signed long
   if ((millis() - lastBlend) > BLEND_INTERVAL) {
     nblendPaletteTowardPalette(currentPalette, targetPalette, blendSpeed);
     FillLEDsFromPaletteColors(startIndex++);
@@ -316,13 +325,28 @@ void changeColorOverTime(void)
   }
 }
 
-void setPaletteFromTime(void)
-{
+void setTargetPalette(void){
   // NOT IMPLEMENTED YET
+  blendSpeed = QUICK_BLEND;
   if (!state_ON) targetPalette = offPalette;
   else if (state_DISABLE) targetPalette = whitePalette;
-  else targetPalette = orangePalette;
+  else {
+    blendSpeed = GRADUAL_BLEND;
+    setPaletteFromTime(); // sets targetPalette to a blend based on time.
+  }
+}
 
+CRGBPalette16 setPaletteFromTime(void)
+{
+  targetPalette = orangePalette;
+// WORK IN PROGRESS //
+  
+  long timeNow = getTimeFromAPI();
+  // case sun is up
+  float blendRatio = ((float)(timeNow - timeSunrise))/(timeSunset - timeSunrise);
+  uint8_t paletteSize = sizeof( targetPalette) / sizeof(targetPalette[0]); // = 16
+  return blend(sunrisePalette, sunsetPalette, targetPalette, paletteSize, blendRatio);
+  
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
@@ -337,6 +361,20 @@ uint8_t getBrightnessValue(void)
 {
   //NOT IMPLEMENTED YET
   return INITIAL_BRIGHTNESS;
+}
+
+
+//////////////////////////////////////////
+//                                      //
+//            API FUNCTIONS             //
+//                                      //
+//////////////////////////////////////////
+
+
+long getTimeFromAPI(void)
+{
+  //NOT IMPLEMENTED YET
+  return (millis()%timeSunset);
 }
 
 //////////////////////////////////////////
