@@ -78,10 +78,10 @@ CRGB b = CRGB::Blue;
 CRGB r = CHSV( HUE_RED, 255, 128);
 
 // Color Palettes
-CRGBPalette16 offPalette = CRGBPalette16( x, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x );
-CRGBPalette16 whitePalette = CRGBPalette16( w, w, w, w, w, w, w, w, w, w, w, w, w, w, w, w );
-CRGBPalette16 orangePalette = CRGBPalette16( o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o );
-CRGBPalette16 bluePalette = CRGBPalette16( b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b );
+CRGBPalette16 offPalette = CRGBPalette16( x );
+CRGBPalette16 whitePalette = CRGBPalette16( w );
+CRGBPalette16 orangePalette = CRGBPalette16( o );
+CRGBPalette16 bluePalette = CRGBPalette16( b );
 CRGBPalette16 redPalette = CRGBPalette16( r );
 CRGBPalette16 sunrisePalette = whitePalette;
 CRGBPalette16 sunsetPalette = orangePalette;
