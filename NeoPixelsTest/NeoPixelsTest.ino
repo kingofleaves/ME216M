@@ -41,8 +41,7 @@ float Axyz[3];
 #define TIME_TO_DISABLE 10000 // in milliseconds
 
 #define BLEND_INTERVAL 10 // in milliseconds
-#define GRADUAL_BLEND 10  // 1-48 with 48 being fastest
-#define QUICK_BLEND 24    // 1-48 with 48 being fastest
+#define INITIAL_BLEND 36
 
 uint8_t hue = 180;
 uint8_t sat = 0;
@@ -56,6 +55,7 @@ unsigned long currTime;
 bool state_ON;
 bool state_DISABLE;
 bool state_EXTEND;
+
 
 // variables for each mode
 unsigned long disableTimeEnd;
@@ -75,22 +75,31 @@ CRGB x = CRGB::Black;
 CRGB w = CRGB::White;
 CRGB o = CHSV( HUE_ORANGE, 255, 255);
 CRGB b = CRGB::Blue;
+CRGB r = CHSV( HUE_RED, 255, 128);
 
 // Color Palettes
 CRGBPalette16 offPalette = CRGBPalette16( x, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x );
 CRGBPalette16 whitePalette = CRGBPalette16( w, w, w, w, w, w, w, w, w, w, w, w, w, w, w, w );
 CRGBPalette16 orangePalette = CRGBPalette16( o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o );
 CRGBPalette16 bluePalette = CRGBPalette16( b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b );
+CRGBPalette16 redPalette = CRGBPalette16( r );
 CRGBPalette16 sunrisePalette = whitePalette;
 CRGBPalette16 sunsetPalette = orangePalette;
+
+static long const totalDuration = 60000;
+static long const timeBlue = 0;
+static long const timeWhite = 10000;
+static long const timeOrange = 20000;
+static long const timeRed = 40000;
+static long const timeRed2 = 55000;
 
 
 CRGBPalette16 currentPalette;
 CRGBPalette16 targetPalette;
 
 // API stuff
-long timeSunrise = 0;
-long timeSunset = 100000;
+long timeSunrise;
+long timeSunset;
 
 
 void setup() {
@@ -171,22 +180,22 @@ bool onoffButtonPressed(void)
 {
 
   getAccel_Data();
-  Serial.print(Axyz[0]);
-  Serial.print(Axyz[1]);
-  Serial.println(Axyz[2]);
+//  Serial.print(Axyz[0]);
+//  Serial.print(Axyz[1]);
+//  Serial.println(Axyz[2]);
   if (abs(Axyz[1]) > 0.5) {
     // Y reading is too high -> too tilted
-    Serial.println("OFF");
+//    Serial.println("OFF");
     return false;
   }
   if (abs(Axyz[2]) > abs(2*Axyz[0]) + 0.1) {
     // Z > 2X -> turn off
-    Serial.println("OFF");
+//    Serial.println("OFF");
     return false;
   }
   if (abs(Axyz[0]) > abs(2*Axyz[2]) + 0.1) {
     // X > 2Z -> turn on
-    Serial.println("ON");
+//    Serial.println("ON");
     return true;
   }
   return false;
@@ -229,7 +238,8 @@ bool disableButtonPressed(void)
 
 void respond_to_disableButton(void)
 {
-  state_DISABLE = true;
+  // state_DISABLE = true; For longer snooze
+  state_DISABLE = !state_DISABLE; // For unsnoozing at accidental snooze
   disableTimeEnd = currTime + TIME_TO_DISABLE;
 }
 
@@ -301,6 +311,13 @@ void updateBrightnessFromInput(void)
   }
 }
 
+uint8_t getBrightnessValue(void)
+{
+  //NOT IMPLEMENTED YET
+  return INITIAL_BRIGHTNESS;
+}
+
+
 //////////////////////////////////////////
 //                                      //
 //        UPDATE BRIGHTNESS END         //
@@ -327,42 +344,77 @@ void changeColorOverTime(void)
 
 void setTargetPalette(void){
   // NOT IMPLEMENTED YET
-  blendSpeed = QUICK_BLEND;
   if (!state_ON) targetPalette = offPalette;
   else if (state_DISABLE) targetPalette = whitePalette;
   else {
-    blendSpeed = GRADUAL_BLEND;
     setPaletteFromTime(); // sets targetPalette to a blend based on time.
   }
 }
 
 CRGBPalette16 setPaletteFromTime(void)
 {
-  targetPalette = orangePalette;
+  // targetPalette = orangePalette;
 // WORK IN PROGRESS //
+  long timeNow = getTimeFromAPI(totalDuration);
+  static long timeStart;
+  static long timeEnd;
+  CRGBPalette16 startPalette;
+  CRGBPalette16 endPalette;
+
+  if (timeNow < timeWhite) {
+    blendSpeed = INITIAL_BLEND;
+    timeStart = timeBlue;
+    timeEnd = timeWhite;
+    startPalette = bluePalette;
+    endPalette = whitePalette;
+  }
+  else if (timeNow < timeOrange) {
+    blendSpeed = INITIAL_BLEND;
+    timeStart = timeWhite;
+    timeEnd = timeOrange; 
+    startPalette = whitePalette;
+    endPalette = orangePalette;
+  }
+  else if (timeNow < timeRed) {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = timeOrange;
+    timeEnd = timeRed;
+    startPalette = orangePalette;
+    endPalette = redPalette;
+  }  
+  else if (timeNow < timeRed2) {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = timeRed;
+    timeEnd = timeRed2;
+    startPalette = redPalette;
+    endPalette = redPalette;
+  }
+  else {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = timeRed2;
+    timeEnd = totalDuration;
+    startPalette = redPalette;
+    endPalette = bluePalette;
+  }
   
-  long timeNow = getTimeFromAPI();
-  // case sun is up
-  float blendRatio = ((float)(timeNow - timeSunrise))/(timeSunset - timeSunrise);
+  float rawBlendRatio = ((float)(timeNow - timeStart))/(timeEnd - timeStart);
+  uint8_t blendRatio = rawBlendRatio * 256;
+  Serial.println(blendRatio);
   uint8_t paletteSize = sizeof( targetPalette) / sizeof(targetPalette[0]); // = 16
-  return blend(sunrisePalette, sunsetPalette, targetPalette, paletteSize, blendRatio);
-  
+  return blend(startPalette, endPalette, currentPalette, paletteSize, blendRatio);
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
 {
   for ( int i = 0; i < NUM_LEDS; i++) {
+//    // TEST
+//    uint8_t flickeringBrightness = (float)brightness/256 * sin8(i + millis()%256);
+//    leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i * 16), flickeringBrightness);
+//    // TEST END
     leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i * 16), brightness);
     colorIndex += 3;
   }
 }
-
-uint8_t getBrightnessValue(void)
-{
-  //NOT IMPLEMENTED YET
-  return INITIAL_BRIGHTNESS;
-}
-
 
 //////////////////////////////////////////
 //                                      //
@@ -371,10 +423,10 @@ uint8_t getBrightnessValue(void)
 //////////////////////////////////////////
 
 
-long getTimeFromAPI(void)
+long getTimeFromAPI(long modDuration)
 {
   //NOT IMPLEMENTED YET
-  return (millis()%timeSunset);
+  return (millis()%modDuration);
 }
 
 //////////////////////////////////////////
