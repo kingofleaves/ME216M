@@ -1,6 +1,36 @@
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 #include <FastLED.h>
+#include "Wire.h"
 
+// I2Cdev and MPU9250 must be installed as libraries, or else the .cpp/.h files
+// for both classes must be in the include path of your project
+#include "I2Cdev.h"
+#include "MPU9250.h"
+
+// class default I2C address is 0x68
+// specific I2C addresses may be passed as a parameter here
+// AD0 low = 0x68 (default for InvenSense evaluation board)
+// AD0 high = 0x69
+MPU9250 accelgyro;
+I2Cdev   I2C_M;
+
+// I2C Pin Designations
+#define SDA 12
+#define SCL 14
+
+uint8_t buffer_m[6];
+
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
+int16_t mx, my, mz;
+
+float Axyz[3];
+
+#define sample_num_mdate  5000      
+
+
+
+// LED Defs
 #define LED_TYPE NEOPIXEL
 #define LED_PIN_DATA 2
 #define NUM_LEDS 60
@@ -10,7 +40,7 @@
 #define TIME_TO_EXTEND 10000 // in milliseconds
 #define TIME_TO_DISABLE 10000 // in milliseconds
 
-#define BLEND_INTERVAL 100 // in milliseconds
+#define BLEND_INTERVAL 10 // in milliseconds
 
 uint8_t hue = 180;
 uint8_t sat = 0;
@@ -58,6 +88,16 @@ void setup() {
   Serial.begin(115200);
   delay( 3000 ); // power-up safety delay
 
+  // IMU Setup:
+    // join I2C bus (I2Cdev library doesn't do this automatically)
+  Wire.begin(SDA, SCL);
+    // initialize device
+  Serial.println("Initializing I2C devices...");
+  accelgyro.initialize();
+  Serial.println(accelgyro.testConnection() ? "MPU9250 connection successful" : "MPU9250 connection failed");
+
+  
+  // LED Setup:
   FastLED.addLeds<LED_TYPE, LED_PIN_DATA>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
   brightness = INITIAL_BRIGHTNESS;
   FastLED.setBrightness( brightness );
@@ -79,7 +119,7 @@ void loop() {
   serialEvent();
   handleComputation();
   FastLED.show();
-  //debug();
+  debug();
 }
 
 void debug(void)
@@ -91,7 +131,7 @@ void debug(void)
 
 void checkForInputs(void)
 {
-  if (onoffButtonPressed()) respond_to_onoffButton();
+  respond_to_onoffButton();
   if (disableButtonPressed()) respond_to_disableButton();
   if (extendButtonPressed()) respond_to_extendButton();
   updateBrightnessFromInput();
@@ -120,17 +160,39 @@ void handleComputation(void)
 
 bool onoffButtonPressed(void)
 {
-  // NOT IMPLEMENTED YET
-  if (onoff) {
-    onoff = false;
+
+  getAccel_Data();
+  Serial.print(Axyz[0]);
+  Serial.print(Axyz[1]);
+  Serial.println(Axyz[2]);
+  if (abs(Axyz[1]) > 0.5) {
+    // Y reading is too high -> too tilted
+    Serial.println("OFF");
+    return false;
+  }
+  if (abs(Axyz[2]) > abs(2*Axyz[0]) + 0.1) {
+    // Z > 2X -> turn off
+    Serial.println("OFF");
+    return false;
+  }
+  if (abs(Axyz[0]) > abs(2*Axyz[2]) + 0.1) {
+    // X > 2Z -> turn on
+    Serial.println("ON");
     return true;
   }
   return false;
+  
+//  // NOT IMPLEMENTED YET
+//  if (onoff) {
+//    onoff = false;
+//    return true;
+//  }
+//  return false;
 }
 
 void respond_to_onoffButton(void)
 {
-  state_ON = !state_ON;
+  state_ON = onoffButtonPressed();
 }
 
 //////////////////////////////////////////
@@ -274,6 +336,20 @@ uint8_t getBrightnessValue(void)
 {
   //NOT IMPLEMENTED YET
   return INITIAL_BRIGHTNESS;
+}
+
+//////////////////////////////////////////
+//                                      //
+//            IMU FUNCTIONS             //
+//                                      //
+//////////////////////////////////////////
+
+void getAccel_Data(void)
+{
+  accelgyro.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);
+  Axyz[0] = (double) ax / 16384;//16384  LSB/g
+  Axyz[1] = (double) ay / 16384;
+  Axyz[2] = (double) az / 16384; 
 }
 
 //////////////////////////////////////////
