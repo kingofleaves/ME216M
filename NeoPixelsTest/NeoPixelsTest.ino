@@ -19,6 +19,9 @@ I2Cdev   I2C_M;
 #define SDA 4
 #define SCL 5
 
+#define POT_PIN A0
+#define SNOOZE_PIN 13
+
 uint8_t buffer_m[6];
 
 int16_t ax, ay, az;
@@ -49,18 +52,27 @@ uint8_t val = 100;
 uint8_t brightness;
 uint8_t blendSpeed = 24;
 
+int potVal = 0;
+
 unsigned long currTime;
 
 // States
 bool state_ON;
-bool state_DISABLE;
+bool state_DISABLE = false;
 bool state_EXTEND;
+
+int state_PREV_button = LOW;
+int state_CURR_button = LOW;
+
+long time1 = 0;         // the last time the output pin was toggled
+long debounce = 200;   // the debounce time, increase if the output flickers
 
 
 // variables for each mode
 unsigned long disableTimeEnd;
 unsigned long extendTimeEnd;
 
+long timeNow = 0;
 
 // Debug States
 bool onoff = false;
@@ -129,6 +141,10 @@ void setup() {
 
   Serial.println("Setup Complete!");
   currTime = 0;
+
+  pinMode(POT_PIN,INPUT);
+  pinMode(SNOOZE_PIN,INPUT);
+    
 }
 
 void loop() {
@@ -162,7 +178,7 @@ void handleComputation(void)
   // set target palettes and change color based on time.
 
   setTargetPalette();
-
+  
   checkDisable();
   checkExtend();
 
@@ -228,12 +244,16 @@ void respond_to_onoffButton(void)
 
 bool disableButtonPressed(void)
 {
-  // NOT IMPLEMENTED YET
-  if (disable) {
-    disable = false;
-    return true;
+  state_CURR_button = digitalRead(SNOOZE_PIN);
+  if (state_CURR_button == HIGH && state_PREV_button == LOW && millis() - time1 > debounce) {
+    Serial.println("button pressed!");
+    time1 = millis();
+    state_PREV_button = state_CURR_button;
+    return true;    
+  } else {
+    state_PREV_button = state_CURR_button;
+    return false;
   }
-  return false;
 }
 
 void respond_to_disableButton(void)
@@ -241,6 +261,7 @@ void respond_to_disableButton(void)
   // state_DISABLE = true; For longer snooze
   state_DISABLE = !state_DISABLE; // For unsnoozing at accidental snooze
   disableTimeEnd = currTime + TIME_TO_DISABLE;
+  timeNow = timeNow - 20000;
 }
 
 void checkDisable(void)
@@ -305,16 +326,18 @@ void checkExtend(void)
 void updateBrightnessFromInput(void)
 {
   uint8_t newBrightness = getBrightnessValue();
-  if (abs(newBrightness - brightness) > 10) {
+  //if (abs(newBrightness - brightness) > 10) {
     brightness = newBrightness;
     FastLED.setBrightness( brightness );
-  }
+  //}
 }
 
 uint8_t getBrightnessValue(void)
 {
-  //NOT IMPLEMENTED YET
-  return INITIAL_BRIGHTNESS;
+  potVal = analogRead(POT_PIN);
+  //Serial.println(potVal);
+  int mappedPotVal = map(potVal,0,1023,0,255);
+  return mappedPotVal;
 }
 
 
@@ -355,7 +378,8 @@ CRGBPalette16 setPaletteFromTime(void)
 {
   // targetPalette = orangePalette;
 // WORK IN PROGRESS //
-  long timeNow = getTimeFromAPI(totalDuration);
+  //if(state_DISABLE == false) {
+  timeNow = getTimeFromAPI(totalDuration);
   static long timeStart;
   static long timeEnd;
   CRGBPalette16 startPalette;

@@ -5,10 +5,10 @@
 
 #define I2C 0x3C
 
-//#define WIFISSID "LOFT"
-//#define PASSWORD "loftloft"
-#define WIFISSID "ME216M Wi-Fi Network"
-#define PASSWORD "me216marduino"
+#define WIFISSID "LOFT"
+#define PASSWORD "loftloft"
+//#define WIFISSID "ME216M Wi-Fi Network"
+//#define PASSWORD "me216marduino"
 
 #define WORLDCLOCKAPIKEY "/api/json/est/now"
 #define WCDOMAINNAME "worldclockapi.com"
