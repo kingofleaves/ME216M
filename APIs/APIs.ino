@@ -3,7 +3,7 @@
 #include <ESP8266HTTPClient.h>
 #include <Ticker.h>
 
-#define I2C 0x3C
+//#define I2C 0x3C
 
 #define WIFISSID "LOFT"
 #define PASSWORD "loftloft"
@@ -33,8 +33,8 @@ String webDomain = WCDOMAINNAME;
 Ticker ticker;
 bool readyForTimeUpdate = true;
 
-  String lon = "0";
-  String lat = "0";
+String lon = "0";
+String lat = "0";
   
 
 void setup() {
@@ -113,25 +113,25 @@ void setup() {
 
 void loop() {
 
-if (readyForTimeUpdate) {
-  readyForTimeUpdate = false;
+  if (readyForTimeUpdate) {
+    readyForTimeUpdate = false;
+    
+    HTTPClient http;
+    http.begin(WCDOMAINNAME, 80, WORLDCLOCKAPIKEY);
+    int httpCode = http.GET();
+    //Serial.println(httpCode);
+    if (httpCode == HTTP_CODE_OK) {
+      String Stringpayload = http.getString();
+      DynamicJsonBuffer jsonBuffer(400);
+      JsonObject& root = jsonBuffer.parseObject(Stringpayload, 10);
+      String dateTime = root["currentDateTime"];
+      String zone = root["timeZoneName"];
+      Serial.println(dateTime);
+      Serial.println(zone);
+    }
   
-  HTTPClient http;
-  http.begin(WCDOMAINNAME, 80, WORLDCLOCKAPIKEY);
-  int httpCode = http.GET();
-  //Serial.println(httpCode);
-  if (httpCode == HTTP_CODE_OK) {
-    String Stringpayload = http.getString();
-    DynamicJsonBuffer jsonBuffer(400);
-    JsonObject& root = jsonBuffer.parseObject(Stringpayload, 10);
-    String dateTime = root["currentDateTime"];
-    String zone = root["timeZoneName"];
-    Serial.println(dateTime);
-    Serial.println(zone);
+      http.end();
   }
-
-    http.end();
-}
 
 }
 
