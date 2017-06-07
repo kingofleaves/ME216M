@@ -160,7 +160,10 @@ long timeOffset = 0;
 
 // DEMO MODE
 bool demoMode = false;
+long timeOffsetDemo = 0;
 
+long showTime = 0;
+#define SHOW_INTERVAL 100
 
 void setup() {
   Serial.begin(115200);
@@ -170,9 +173,9 @@ void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
   Wire.begin(SDA, SCL);
     // initialize device
-  Serial.println("Initializing I2C devices...");
+  //Serial.println("Initializing I2C devices...");
   accelgyro.initialize();
-  Serial.println(accelgyro.testConnection() ? "MPU9250 connection successful" : "MPU9250 connection failed");
+  //Serial.println(accelgyro.testConnection() ? "MPU9250 connection successful" : "MPU9250 connection failed");
 
   
   // LED Setup:
@@ -195,22 +198,22 @@ void setup() {
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    //Serial.print(".");
     counter++;
   }
 
 
-  Serial.println("");
+  //Serial.println("");
 
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  //Serial.println("WiFi connected");
+  //Serial.println("IP address: ");
+  //Serial.println(WiFi.localIP());
 
 // get Lat and Lon from IP address API
   HTTPClient httpGL;
   httpGL.begin(GLDOMAINNAME, 80, GEOLOCAPIKEY);
   int httpGLCode = httpGL.GET();
-  //Serial.println(httpCode);
+  ////Serial.println(httpCode);
 
 
   if (httpGLCode == HTTP_CODE_OK) {
@@ -223,10 +226,10 @@ void setup() {
     String lon1 = root["lon"];
     lat = lat1;
     lon = lon1;
-    Serial.print(city);
-    Serial.println(state);
-    Serial.println(lat);
-    Serial.println(lon);
+    //Serial.print(city);
+    //Serial.println(state);
+    //Serial.println(lat);
+    //Serial.println(lon);
   }
     httpGL.end();
 
@@ -236,7 +239,7 @@ void setup() {
   key = key + "/json?" + "lat=" + lat + "&" + "lng=" + lon + "&formatted=0";
   httpSS.begin(SUNDOMAINNAME, 80, key);
   int httpSSCode = httpSS.GET();
-  //Serial.println(httpCode);
+  ////Serial.println(httpCode);
   if (httpSSCode == HTTP_CODE_OK) { 
     String Stringpayload = httpSS.getString();
     DynamicJsonBuffer jsonBuffer(400);
@@ -249,10 +252,10 @@ void setup() {
     
     printCurrLatLong();
     
-    Serial.println(sunrise + " is sunrise.");
-    Serial.println(sunset + " is sunset.");
-    Serial.println(civil_twilight_begin + " is start of civil twilight.");
-    Serial.println(civil_twilight_end + " is end of civil twilight.");
+    //Serial.println(sunrise + " is sunrise.");
+    //Serial.println(sunset + " is sunset.");
+    //Serial.println(civil_twilight_begin + " is start of civil twilight.");
+    //Serial.println(civil_twilight_end + " is end of civil twilight.");
 
     timeSunrise = ((sunrise.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunrise.substring(14,16).toInt()) * 60 + sunrise.substring(17,19).toInt();
     timeSunset = ((sunset.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunset.substring(14,16).toInt()) * 60 + sunset.substring(17,19).toInt();
@@ -263,12 +266,12 @@ void setup() {
     timeSunrise *= 1000; // convert to milliseconds;
     timeSunset *= 1000; // convert to milliseconds;
     
-    Serial.println(timeSunrise);
-    Serial.println(timeSunset);
+    //Serial.println(timeSunrise);
+    //Serial.println(timeSunset);
     
-//    Serial.println(sunrise.substring(11, 13).toInt());
-//    Serial.println(sunrise.substring(14, 16).toInt());
-//    Serial.println(sunrise.substring(17, 19).toInt());
+//    //Serial.println(sunrise.substring(11, 13).toInt());
+//    //Serial.println(sunrise.substring(14, 16).toInt());
+//    //Serial.println(sunrise.substring(17, 19).toInt());
 
     //TODO: Parse Sunset and Surise into time to be used by this code.
   }
@@ -281,7 +284,7 @@ void setup() {
   timeWhite = 30000;
   timeOrange = 40000;
 
-  Serial.println("Setup Complete!");
+  //Serial.println("Setup Complete!");
   currTime = 0;
 
   pinMode(POT_PIN,INPUT);
@@ -295,7 +298,10 @@ void loop() {
   checkForInputs();
   serialEvent();
   handleComputation();
-  FastLED.show();
+  if (showTime < millis()){
+    showTime = millis() + SHOW_INTERVAL;
+    FastLED.show();
+  }
   //debug();
 }
 
@@ -347,21 +353,21 @@ void getTimeFromAPI(void) {
     HTTPClient http;
     http.begin(WCDOMAINNAME, 80, WORLDCLOCKAPIKEY);
     int httpCode = http.GET();
-    //Serial.println(httpCode);
+    ////Serial.println(httpCode);
     if (httpCode == HTTP_CODE_OK) {
       String Stringpayload = http.getString();
       DynamicJsonBuffer jsonBuffer(400);
       JsonObject& root = jsonBuffer.parseObject(Stringpayload, 10);
       String dateTime = root["currentDateTime"];
       String zone = root["timeZoneName"];
-      Serial.println(dateTime);
-      Serial.println(zone);
+      //Serial.println(dateTime);
+      //Serial.println(zone);
       long pulledTime = ((dateTime.substring(11, 13).toInt() + TIMEZONE_OFFSET) * 60 + dateTime.substring(14, 16).toInt()) * 60;
 //      Serial.println(dateTime.substring(11, 13).toInt());
 //      Serial.println(dateTime.substring(14, 16).toInt());
-      Serial.println(pulledTime);
+      //Serial.println(pulledTime);
       timeOffset = pulledTime * 1000 - millis();
-      Serial.println(timeOffset);
+      //Serial.println(timeOffset);
     }
     http.end();
   }
@@ -372,14 +378,14 @@ void setReadyForTimeUpdate() {
 }
 
 void printCurrLatLong(void) {
-  Serial.println("Our current Latitude and Longitude is: ");
-  Serial.print("\t");
-  Serial.print(abs(lat.toFloat()));
-  Serial.print(lat.toFloat() < 0 ? "S" : "N");
-  Serial.print(", ");
-  Serial.print(abs(lon.toFloat()));
-  Serial.print(lon.toFloat() < 0 ? "W" : "E");
-  Serial.println();
+  //Serial.println("Our current Latitude and Longitude is: ");
+  //Serial.print("\t");
+  //Serial.print(abs(lat.toFloat()));
+  //Serial.print(lat.toFloat() < 0 ? "S" : "N");
+//  Serial.print(", ");
+//  Serial.print(abs(lon.toFloat()));
+//  Serial.print(lon.toFloat() < 0 ? "W" : "E");
+//  Serial.println();
 }
 
 //////////////////////////////////////////
@@ -461,7 +467,7 @@ void respond_to_onoffButton(void)
 bool demoModeTriggered(void)
 {
   if (demoFlag2) {
-    Serial.println("DemoFlag2!");
+    //Serial.println("DemoFlag2!");
     demoFlag2 = false;
     return true;
   }
@@ -476,11 +482,11 @@ void respond_to_DemoModeTrigger(void)
     timeBlue = timeSunrise - 10 * 60 * 1000;
     timeWhite = 2 * timeSunrise/10 + 8 * timeSunset/10;
     timeOrange = timeSunset + 60 * 60 * 1000;
-    Serial.println(timeRed);
-    Serial.println(timeRed2);
-    Serial.println(timeBlue);
-    Serial.println(timeWhite);
-    Serial.println(timeOrange);
+//    Serial.println(timeRed);
+//    Serial.println(timeRed2);
+//    Serial.println(timeBlue);
+//    Serial.println(timeWhite);
+//    Serial.println(timeOrange);
   }
   else {
     totalDuration = 60000;
@@ -489,6 +495,7 @@ void respond_to_DemoModeTrigger(void)
     timeBlue = 20000;
     timeWhite = 30000;
     timeOrange = 40000;
+    timeOffsetDemo = millis() - timeBlue;
   }
   demoMode = !demoMode;
 }
@@ -647,7 +654,7 @@ void setTargetPalette(void){
   }
 }
 
-CRGBPalette16 setPaletteFromTime(void)
+void setPaletteFromTime(void)
 {
   // targetPalette = orangePalette;
 // WORK IN PROGRESS //
@@ -659,7 +666,7 @@ CRGBPalette16 setPaletteFromTime(void)
   CRGBPalette16 endPalette;
   
   if (timeNow < timeRed) {
-    Serial.println("O to R");
+    //Serial.println("O to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = 0;
     timeEnd = timeRed;
@@ -667,7 +674,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = redPalette;
   }  
   else if (timeNow < timeRed2) {
-    Serial.println("R to R");
+    //Serial.println("R to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed;
     timeEnd = timeRed2;
@@ -675,7 +682,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = redPalette;
   }
   else if (timeNow < timeBlue) {
-    Serial.println("R to B");
+    //Serial.println("R to B");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed2;
     timeEnd = timeBlue;
@@ -683,7 +690,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = bluePalette;
   }
   else if (timeNow < timeWhite) {
-    Serial.println("B to W");
+    //Serial.println("B to W");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeBlue;
     timeEnd = timeWhite;
@@ -691,7 +698,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = whitePalette;
   }
   else if (timeNow < timeOrange) {
-    Serial.println("W to O");
+    //Serial.println("W to O");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeWhite;
     timeEnd = timeOrange; 
@@ -699,7 +706,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = orangePalette;
   }
   else {
-    Serial.println("O to O");    
+   // Serial.println("O to O");    
     blendSpeed = INITIAL_BLEND;
     timeStart = timeOrange;
     timeEnd = totalDuration; 
@@ -709,13 +716,14 @@ CRGBPalette16 setPaletteFromTime(void)
   
   float rawBlendRatio = ((float)(timeNow - timeStart))/(timeEnd - timeStart);
   uint8_t blendRatio = rawBlendRatio * 256;
-  Serial.println(timeStart);
-  Serial.println(timeEnd);
-  Serial.println(timeNow);
-  Serial.println(timeOffset);
-  Serial.println(blendRatio);
+//  Serial.println(timeStart);
+//  Serial.println(timeEnd);
+//  Serial.println(timeNow);
+//  Serial.println(timeOffset);
+//  Serial.println(blendRatio);
   uint8_t paletteSize = sizeof( targetPalette) / sizeof(targetPalette[0]); // = 16
-  return blend(startPalette, endPalette, currentPalette, paletteSize, blendRatio);
+  blend(startPalette, endPalette, currentPalette, paletteSize, blendRatio);
+  targetPalette = startPalette;
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
@@ -739,7 +747,7 @@ void FillLEDsFromPaletteColors( uint8_t colorIndex)
 
 long getCurrTime(long modDuration)
 {
-  if (demoMode) return millis()%modDuration;
+//  if (demoMode) return millis()%modDuration;
   return ((timeOffset + millis())%modDuration); 
 }
 
@@ -778,8 +786,8 @@ void serialEvent() {
 
   if (Serial.available() > 0) {
     char c = (char)Serial.read();
-    Serial.print("Read the character: ");
-    Serial.println(c);
+    //Serial.print("Read the character: ");
+    //Serial.println(c);
     switch (c)
     {
       case 'o':
@@ -802,7 +810,7 @@ void serialEvent() {
         break;
 
       default:
-        Serial.println("Not a valid command.");
+        //Serial.println("Not a valid command.");
         break;
     }
   }
