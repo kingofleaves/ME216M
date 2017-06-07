@@ -129,7 +129,7 @@ CRGB leds[NUM_LEDS];
 CRGB x = CRGB::Black;
 CRGB w = CRGB::White;
 CRGB o = CHSV( HUE_ORANGE, 255, 255);
-CRGB b = CRGB::Blue;
+CRGB b = CRGB::(208, 40 100);
 CRGB r = CHSV( HUE_RED, 255, 128);
 
 // Color Palettes
