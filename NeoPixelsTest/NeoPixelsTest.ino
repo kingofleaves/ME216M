@@ -173,9 +173,9 @@ void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
   Wire.begin(SDA, SCL);
     // initialize device
-  //Serial.println("Initializing I2C devices...");
+  Serial.println("Initializing I2C devices...");
   accelgyro.initialize();
-  //Serial.println(accelgyro.testConnection() ? "MPU9250 connection successful" : "MPU9250 connection failed");
+  Serial.println(accelgyro.testConnection() ? "MPU9250 connection successful" : "MPU9250 connection failed");
 
   
   // LED Setup:
@@ -203,17 +203,17 @@ void setup() {
   }
 
 
-  //Serial.println("");
+  Serial.println("");
 
-  //Serial.println("WiFi connected");
-  //Serial.println("IP address: ");
-  //Serial.println(WiFi.localIP());
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 
 // get Lat and Lon from IP address API
   HTTPClient httpGL;
   httpGL.begin(GLDOMAINNAME, 80, GEOLOCAPIKEY);
   int httpGLCode = httpGL.GET();
-  ////Serial.println(httpCode);
+  //Serial.println(httpCode);
 
 
   if (httpGLCode == HTTP_CODE_OK) {
@@ -226,10 +226,10 @@ void setup() {
     String lon1 = root["lon"];
     lat = lat1;
     lon = lon1;
-    //Serial.print(city);
-    //Serial.println(state);
-    //Serial.println(lat);
-    //Serial.println(lon);
+    Serial.print(city);
+    Serial.println(state);
+    Serial.println(lat);
+    Serial.println(lon);
   }
     httpGL.end();
 
@@ -239,7 +239,7 @@ void setup() {
   key = key + "/json?" + "lat=" + lat + "&" + "lng=" + lon + "&formatted=0";
   httpSS.begin(SUNDOMAINNAME, 80, key);
   int httpSSCode = httpSS.GET();
-  ////Serial.println(httpCode);
+  //Serial.println(httpCode);
   if (httpSSCode == HTTP_CODE_OK) { 
     String Stringpayload = httpSS.getString();
     DynamicJsonBuffer jsonBuffer(400);
@@ -252,10 +252,10 @@ void setup() {
     
     printCurrLatLong();
     
-    //Serial.println(sunrise + " is sunrise.");
-    //Serial.println(sunset + " is sunset.");
-    //Serial.println(civil_twilight_begin + " is start of civil twilight.");
-    //Serial.println(civil_twilight_end + " is end of civil twilight.");
+    Serial.println(sunrise + " is sunrise.");
+    Serial.println(sunset + " is sunset.");
+    Serial.println(civil_twilight_begin + " is start of civil twilight.");
+    Serial.println(civil_twilight_end + " is end of civil twilight.");
 
     timeSunrise = ((sunrise.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunrise.substring(14,16).toInt()) * 60 + sunrise.substring(17,19).toInt();
     timeSunset = ((sunset.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunset.substring(14,16).toInt()) * 60 + sunset.substring(17,19).toInt();
@@ -266,12 +266,12 @@ void setup() {
     timeSunrise *= 1000; // convert to milliseconds;
     timeSunset *= 1000; // convert to milliseconds;
     
-    //Serial.println(timeSunrise);
-    //Serial.println(timeSunset);
+    Serial.println(timeSunrise);
+    Serial.println(timeSunset);
     
-//    //Serial.println(sunrise.substring(11, 13).toInt());
-//    //Serial.println(sunrise.substring(14, 16).toInt());
-//    //Serial.println(sunrise.substring(17, 19).toInt());
+//    Serial.println(sunrise.substring(11, 13).toInt());
+//    Serial.println(sunrise.substring(14, 16).toInt());
+//    Serial.println(sunrise.substring(17, 19).toInt());
 
     //TODO: Parse Sunset and Surise into time to be used by this code.
   }
@@ -284,7 +284,7 @@ void setup() {
   timeWhite = 30000;
   timeOrange = 40000;
 
-  //Serial.println("Setup Complete!");
+  Serial.println("Setup Complete!");
   currTime = 0;
 
   pinMode(POT_PIN,INPUT);
@@ -353,21 +353,21 @@ void getTimeFromAPI(void) {
     HTTPClient http;
     http.begin(WCDOMAINNAME, 80, WORLDCLOCKAPIKEY);
     int httpCode = http.GET();
-    ////Serial.println(httpCode);
+    //Serial.println(httpCode);
     if (httpCode == HTTP_CODE_OK) {
       String Stringpayload = http.getString();
       DynamicJsonBuffer jsonBuffer(400);
       JsonObject& root = jsonBuffer.parseObject(Stringpayload, 10);
       String dateTime = root["currentDateTime"];
       String zone = root["timeZoneName"];
-      //Serial.println(dateTime);
-      //Serial.println(zone);
+      Serial.println(dateTime);
+      Serial.println(zone);
       long pulledTime = ((dateTime.substring(11, 13).toInt() + TIMEZONE_OFFSET) * 60 + dateTime.substring(14, 16).toInt()) * 60;
 //      Serial.println(dateTime.substring(11, 13).toInt());
 //      Serial.println(dateTime.substring(14, 16).toInt());
-      //Serial.println(pulledTime);
+      Serial.println(pulledTime);
       timeOffset = pulledTime * 1000 - millis();
-      //Serial.println(timeOffset);
+      Serial.println(timeOffset);
     }
     http.end();
   }
@@ -378,10 +378,10 @@ void setReadyForTimeUpdate() {
 }
 
 void printCurrLatLong(void) {
-  //Serial.println("Our current Latitude and Longitude is: ");
-  //Serial.print("\t");
-  //Serial.print(abs(lat.toFloat()));
-  //Serial.print(lat.toFloat() < 0 ? "S" : "N");
+  Serial.println("Our current Latitude and Longitude is: ");
+  Serial.print("\t");
+  Serial.print(abs(lat.toFloat()));
+  Serial.print(lat.toFloat() < 0 ? "S" : "N");
 //  Serial.print(", ");
 //  Serial.print(abs(lon.toFloat()));
 //  Serial.print(lon.toFloat() < 0 ? "W" : "E");
@@ -467,7 +467,7 @@ void respond_to_onoffButton(void)
 bool demoModeTriggered(void)
 {
   if (demoFlag2) {
-    //Serial.println("DemoFlag2!");
+    Serial.println("DemoFlag2!");
     demoFlag2 = false;
     return true;
   }
@@ -615,7 +615,7 @@ void updateBrightnessFromInput(void)
 uint8_t getBrightnessValue(void)
 {
   potVal = analogRead(POT_PIN);
-  //Serial.println(potVal);
+  Serial.println(potVal);
   int mappedPotVal = map(potVal,0,1023,0,255);
   return mappedPotVal;
 }
@@ -666,7 +666,7 @@ void setPaletteFromTime(void)
   CRGBPalette16 endPalette;
   
   if (timeNow < timeRed) {
-    //Serial.println("O to R");
+    Serial.println("O to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = 0;
     timeEnd = timeRed;
@@ -674,7 +674,7 @@ void setPaletteFromTime(void)
     endPalette = redPalette;
   }  
   else if (timeNow < timeRed2) {
-    //Serial.println("R to R");
+    Serial.println("R to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed;
     timeEnd = timeRed2;
@@ -682,7 +682,7 @@ void setPaletteFromTime(void)
     endPalette = redPalette;
   }
   else if (timeNow < timeBlue) {
-    //Serial.println("R to B");
+    Serial.println("R to B");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed2;
     timeEnd = timeBlue;
@@ -690,7 +690,7 @@ void setPaletteFromTime(void)
     endPalette = bluePalette;
   }
   else if (timeNow < timeWhite) {
-    //Serial.println("B to W");
+    Serial.println("B to W");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeBlue;
     timeEnd = timeWhite;
@@ -698,7 +698,7 @@ void setPaletteFromTime(void)
     endPalette = whitePalette;
   }
   else if (timeNow < timeOrange) {
-    //Serial.println("W to O");
+    Serial.println("W to O");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeWhite;
     timeEnd = timeOrange; 
