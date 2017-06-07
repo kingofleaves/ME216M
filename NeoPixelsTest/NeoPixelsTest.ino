@@ -39,10 +39,12 @@ float Axyz[3];
 
 
 // API Defs
-#define WIFISSID "ME216M Wi-Fi Network"
-#define PASSWORD "me216marduino"
+//#define WIFISSID "ME216M Wi-Fi Network"
+//#define PASSWORD "me216marduino"
+#define WIFISSID "kingofleaves"
+#define PASSWORD "19940428"
 
-#define WORLDCLOCKAPIKEY "/api/json/est/now"
+#define WORLDCLOCKAPIKEY "/api/json/utc/now"
 #define WCDOMAINNAME "worldclockapi.com"
 
 #define GEOLOCAPIKEY "/json"
@@ -137,12 +139,12 @@ CRGBPalette16 redPalette = CRGBPalette16( r );
 CRGBPalette16 sunrisePalette = whitePalette;
 CRGBPalette16 sunsetPalette = orangePalette;
 
-static long const totalDuration = 60000;
-static long const timeBlue = 0;
-static long const timeWhite = 10000;
-static long const timeOrange = 20000;
-static long const timeRed = 40000;
-static long const timeRed2 = 55000;
+static long totalDuration = 60000;
+static long timeBlue = 0;
+static long timeWhite = 10000;
+static long timeOrange = 20000;
+static long timeRed = 40000;
+static long timeRed2 = 55000;
 
 
 CRGBPalette16 currentPalette;
@@ -151,6 +153,11 @@ CRGBPalette16 targetPalette;
 // API stuff
 long timeSunrise;
 long timeSunset;
+long timeOffset = 0;
+#define TIMEZONE_OFFSET -7
+
+// DEMO MODE
+bool demoMode = true;
 
 
 void setup() {
@@ -224,7 +231,7 @@ void setup() {
 // get Sunrise and Sunset data using Lat and Lon from Geolocation API
   HTTPClient httpSS;
   String key = "";
-  key = key + "/json?" + "lat=" + lat + "&" + "lng=" + lon;
+  key = key + "/json?" + "lat=" + lat + "&" + "lng=" + lon + "&formatted=0";
   httpSS.begin(SUNDOMAINNAME, 80, key);
   int httpSSCode = httpSS.GET();
   //Serial.println(httpCode);
@@ -237,13 +244,29 @@ void setup() {
     String sunset = results["sunset"];
     String civil_twilight_begin = results["civil_twilight_begin"];
     String civil_twilight_end = results["civil_twilight_end"];
-
+    
     printCurrLatLong();
     
     Serial.println(sunrise + " is sunrise.");
     Serial.println(sunset + " is sunset.");
     Serial.println(civil_twilight_begin + " is start of civil twilight.");
     Serial.println(civil_twilight_end + " is end of civil twilight.");
+
+    timeSunrise = ((sunrise.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunrise.substring(14,16).toInt()) * 60 + sunrise.substring(17,19).toInt();
+    timeSunset = ((sunset.substring(11,13).toInt() + TIMEZONE_OFFSET) * 60 + sunset.substring(14,16).toInt()) * 60 + sunset.substring(17,19).toInt();
+
+    if (timeSunrise > 24*60*60) timeSunrise = timeSunrise%(24*60*60);
+    if (timeSunset < 0 ) timeSunset += (24*60*60);
+      
+    timeSunrise *= 1000; // convert to milliseconds;
+    timeSunset *= 1000; // convert to milliseconds;
+    
+    Serial.println(timeSunrise);
+    Serial.println(timeSunset);
+    
+//    Serial.println(sunrise.substring(11, 13).toInt());
+//    Serial.println(sunrise.substring(14, 16).toInt());
+//    Serial.println(sunrise.substring(17, 19).toInt());
 
     //TODO: Parse Sunset and Surise into time to be used by this code.
   }
@@ -271,6 +294,7 @@ void loop() {
 
 void debug(void)
 {
+  setPaletteFromTime();
   if (state_ON) Serial.println("STATE ON");
   if (state_DISABLE) Serial.println("STATE DISABLE");
   if (state_EXTEND) Serial.println("STATE EXTEND");
@@ -282,6 +306,7 @@ void checkForInputs(void)
   if (disableButtonPressed()) respond_to_disableButton();
   if (extendButtonPressed()) respond_to_extendButton();
   updateBrightnessFromInput();
+  if (demoModeTriggered()) respond_to_DemoModeTrigger();
 }
 
 void handleComputation(void)
@@ -324,8 +349,13 @@ void getTimeFromAPI(void) {
       String zone = root["timeZoneName"];
       Serial.println(dateTime);
       Serial.println(zone);
+      long pulledTime = ((dateTime.substring(11, 13).toInt() + TIMEZONE_OFFSET) * 60 + dateTime.substring(14, 16).toInt()) * 60;
+//      Serial.println(dateTime.substring(11, 13).toInt());
+//      Serial.println(dateTime.substring(14, 16).toInt());
+      Serial.println(pulledTime);
+      timeOffset = pulledTime * 1000 - millis();
+      Serial.println(timeOffset);
     }
-
     http.end();
   }
 }
@@ -351,41 +381,62 @@ void printCurrLatLong(void) {
 //                                      //
 //////////////////////////////////////////
 
-bool onoffButtonPressed(void)
-{
+//bool onoffButtonPressed(void)
+//{
+//
+//  getAccel_Data();
+////  Serial.print(Axyz[0]);
+////  Serial.print(Axyz[1]);
+////  Serial.println(Axyz[2]);
+//  if (abs(Axyz[1]) > 0.5) {
+//    // Y reading is too high -> too tilted
+////    Serial.println("OFF");
+//    return false;
+//  }
+//  if (abs(Axyz[2]) > abs(2*Axyz[0]) + 0.1) {
+//    // Z > 2X -> turn off
+////    Serial.println("OFF");
+//    return false;
+//  }
+//  if (abs(Axyz[0]) > abs(2*Axyz[2]) + 0.1) {
+//    // X > 2Z -> turn on
+////    Serial.println("ON");
+//    return true;
+//  }
+//  return false;
+//  
+////  // NOT IMPLEMENTED YET
+////  if (onoff) {
+////    onoff = false;
+////    return true;
+////  }
+////  return false;
+//}
 
-  getAccel_Data();
-//  Serial.print(Axyz[0]);
-//  Serial.print(Axyz[1]);
-//  Serial.println(Axyz[2]);
+void respond_to_onoffButton(void)
+{
+    getAccel_Data();
   if (abs(Axyz[1]) > 0.5) {
     // Y reading is too high -> too tilted
 //    Serial.println("OFF");
-    return false;
+    state_ON = false;
   }
   if (abs(Axyz[2]) > abs(2*Axyz[0]) + 0.1) {
     // Z > 2X -> turn off
 //    Serial.println("OFF");
-    return false;
+    state_ON = false;
   }
   if (abs(Axyz[0]) > abs(2*Axyz[2]) + 0.1) {
     // X > 2Z -> turn on
 //    Serial.println("ON");
-    return true;
+    state_ON = true;
   }
-  return false;
   
-//  // NOT IMPLEMENTED YET
-//  if (onoff) {
-//    onoff = false;
-//    return true;
-//  }
-//  return false;
-}
-
-void respond_to_onoffButton(void)
-{
-  state_ON = onoffButtonPressed();
+//  Serial.print(Axyz[0]);
+//  Serial.print(Axyz[1]);
+//  Serial.println(Axyz[2]);
+  
+//  state_ON = onoffButtonPressed();
 }
 
 //////////////////////////////////////////
@@ -393,6 +444,52 @@ void respond_to_onoffButton(void)
 //          ON/OFF BUTTON END           //
 //                                      //
 //////////////////////////////////////////
+
+//////////////////////////////////////////
+//                                      //
+//        DEMOMODE BUTTON START         //
+//                                      //
+//////////////////////////////////////////
+
+bool demoModeTriggered(void)
+{
+  // NOT IMPLEMENTED YET
+  if (demoMode) return true;
+  return false;
+}
+
+void respond_to_DemoModeTrigger(void)
+{
+  if(demoMode) {
+    totalDuration = 24 * 60 * 60 * 1000;
+    timeRed = 3 * 60 * 60  * 1000;
+    timeRed2 = timeSunrise - 60 * 60 * 1000;
+    timeBlue = timeSunrise - 10 * 60 * 1000;
+    timeWhite = 2 * timeSunrise/10 + 8 * timeSunset/10;
+    timeOrange = timeSunset + 60 * 60 * 1000;
+    Serial.println(timeRed);
+    Serial.println(timeRed2);
+    Serial.println(timeBlue);
+    Serial.println(timeWhite);
+    Serial.println(timeOrange);
+  }
+  else {
+    totalDuration = 60000;
+    timeRed = 0;
+    timeRed2 = 15000;
+    timeBlue = 20000;
+    timeWhite = 30000;
+    timeOrange = 40000;
+  }
+  demoMode = !demoMode;
+}
+
+//////////////////////////////////////////
+//                                      //
+//         DEMOMODE BUTTON END          //
+//                                      //
+//////////////////////////////////////////
+
 
 //////////////////////////////////////////
 //                                      //
@@ -538,13 +635,34 @@ CRGBPalette16 setPaletteFromTime(void)
   // targetPalette = orangePalette;
 // WORK IN PROGRESS //
   //if(state_DISABLE == false) {
-  timeNow = getTimeFromAPI(totalDuration);
+  timeNow = getCurrTime(totalDuration);
   static long timeStart;
   static long timeEnd;
   CRGBPalette16 startPalette;
   CRGBPalette16 endPalette;
-
-  if (timeNow < timeWhite) {
+  
+  if (timeNow < timeRed) {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = 0;
+    timeEnd = timeRed;
+    startPalette = orangePalette;
+    endPalette = redPalette;
+  }  
+  else if (timeNow < timeRed2) {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = timeRed;
+    timeEnd = timeRed2;
+    startPalette = redPalette;
+    endPalette = redPalette;
+  }
+  else if (timeNow < timeBlue) {
+    blendSpeed = INITIAL_BLEND/3;
+    timeStart = timeRed2;
+    timeEnd = timeBlue;
+    startPalette = redPalette;
+    endPalette = bluePalette;
+  }
+  else if (timeNow < timeWhite) {
     blendSpeed = INITIAL_BLEND;
     timeStart = timeBlue;
     timeEnd = timeWhite;
@@ -558,30 +676,20 @@ CRGBPalette16 setPaletteFromTime(void)
     startPalette = whitePalette;
     endPalette = orangePalette;
   }
-  else if (timeNow < timeRed) {
-    blendSpeed = INITIAL_BLEND/3;
-    timeStart = timeOrange;
-    timeEnd = timeRed;
-    startPalette = orangePalette;
-    endPalette = redPalette;
-  }  
-  else if (timeNow < timeRed2) {
-    blendSpeed = INITIAL_BLEND/3;
-    timeStart = timeRed;
-    timeEnd = timeRed2;
-    startPalette = redPalette;
-    endPalette = redPalette;
-  }
   else {
-    blendSpeed = INITIAL_BLEND/3;
-    timeStart = timeRed2;
-    timeEnd = totalDuration;
-    startPalette = redPalette;
-    endPalette = bluePalette;
+    blendSpeed = INITIAL_BLEND;
+    timeStart = timeOrange;
+    timeEnd = totalDuration; 
+    startPalette = orangePalette;
+    endPalette = orangePalette;
   }
   
   float rawBlendRatio = ((float)(timeNow - timeStart))/(timeEnd - timeStart);
   uint8_t blendRatio = rawBlendRatio * 256;
+  Serial.println(timeStart);
+  Serial.println(timeEnd);
+  Serial.println(timeNow);
+  Serial.println(timeOffset);
   Serial.println(blendRatio);
   uint8_t paletteSize = sizeof( targetPalette) / sizeof(targetPalette[0]); // = 16
   return blend(startPalette, endPalette, currentPalette, paletteSize, blendRatio);
@@ -606,10 +714,10 @@ void FillLEDsFromPaletteColors( uint8_t colorIndex)
 //////////////////////////////////////////
 
 
-long getTimeFromAPI(long modDuration)
+long getCurrTime(long modDuration)
 {
-  //NOT IMPLEMENTED YET
-  return (millis()%modDuration);
+  if (demoMode) return millis()%modDuration;
+  return ((timeOffset + millis())%modDuration); 
 }
 
 //////////////////////////////////////////
