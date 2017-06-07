@@ -141,12 +141,12 @@ CRGBPalette16 redPalette = CRGBPalette16( r );
 CRGBPalette16 sunrisePalette = whitePalette;
 CRGBPalette16 sunsetPalette = orangePalette;
 
-static long totalDuration = 60000;
-static long timeBlue = 0;
-static long timeWhite = 10000;
-static long timeOrange = 20000;
-static long timeRed = 40000;
-static long timeRed2 = 55000;
+static long totalDuration;
+static long timeBlue;
+static long timeWhite;
+static long timeOrange;
+static long timeRed;
+static long timeRed2;
 
 
 CRGBPalette16 currentPalette;
@@ -159,7 +159,7 @@ long timeOffset = 0;
 #define TIMEZONE_OFFSET -7
 
 // DEMO MODE
-bool demoMode = true;
+bool demoMode = false;
 
 
 void setup() {
@@ -274,7 +274,12 @@ void setup() {
   }
     httpSS.end();
 
-
+  totalDuration = 60000;
+  timeRed = 0;
+  timeRed2 = 15000;
+  timeBlue = 20000;
+  timeWhite = 30000;
+  timeOrange = 40000;
 
   Serial.println("Setup Complete!");
   currTime = 0;
@@ -291,12 +296,12 @@ void loop() {
   serialEvent();
   handleComputation();
   FastLED.show();
-  debug();
+  //debug();
 }
 
 void debug(void)
 {
-  setPaletteFromTime();
+  //setPaletteFromTime();
   if (state_ON) Serial.println("STATE ON");
   if (state_DISABLE) Serial.println("STATE DISABLE");
   if (state_EXTEND) Serial.println("STATE EXTEND");
@@ -508,17 +513,19 @@ bool disableButtonPressed(void)
   if (state_CURR_button == HIGH && state_PREV_button == LOW && millis() - time1 > debounce) {
     Serial.println("button pressed!");
     time1 = millis();
+    state_PREV_button = state_CURR_button;
     return true;    
   } else if (!demoFlag && state_CURR_button == HIGH && state_PREV_button == HIGH && millis() - time1 > demoTime){
     Serial.println("demoMode!jn");
     demoFlag = true;
     demoFlag2 = true;
+    state_PREV_button = state_CURR_button;
     return false;
   } else{
     demoFlag = false;
+    state_PREV_button = state_CURR_button;
     return false;
   }
-    state_PREV_button = state_CURR_button;
 
 }
 
@@ -652,6 +659,7 @@ CRGBPalette16 setPaletteFromTime(void)
   CRGBPalette16 endPalette;
   
   if (timeNow < timeRed) {
+    Serial.println("O to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = 0;
     timeEnd = timeRed;
@@ -659,6 +667,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = redPalette;
   }  
   else if (timeNow < timeRed2) {
+    Serial.println("R to R");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed;
     timeEnd = timeRed2;
@@ -666,6 +675,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = redPalette;
   }
   else if (timeNow < timeBlue) {
+    Serial.println("R to B");
     blendSpeed = INITIAL_BLEND/3;
     timeStart = timeRed2;
     timeEnd = timeBlue;
@@ -673,6 +683,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = bluePalette;
   }
   else if (timeNow < timeWhite) {
+    Serial.println("B to W");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeBlue;
     timeEnd = timeWhite;
@@ -680,6 +691,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = whitePalette;
   }
   else if (timeNow < timeOrange) {
+    Serial.println("W to O");
     blendSpeed = INITIAL_BLEND;
     timeStart = timeWhite;
     timeEnd = timeOrange; 
@@ -687,6 +699,7 @@ CRGBPalette16 setPaletteFromTime(void)
     endPalette = orangePalette;
   }
   else {
+    Serial.println("O to O");    
     blendSpeed = INITIAL_BLEND;
     timeStart = timeOrange;
     timeEnd = totalDuration; 
