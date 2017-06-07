@@ -107,7 +107,9 @@ int state_CURR_button = LOW;
 
 long time1 = 0;         // the last time the output pin was toggled
 long debounce = 200;   // the debounce time, increase if the output flickers
-
+long demoTime = 2000;   // hold down for this time to move into 
+bool demoFlag = false;
+bool demoFlag2 = false;
 
 // variables for each mode
 unsigned long disableTimeEnd;
@@ -453,9 +455,11 @@ void respond_to_onoffButton(void)
 
 bool demoModeTriggered(void)
 {
-  // NOT IMPLEMENTED YET
-  if (demoMode) return true;
-  return false;
+  if (demoFlag2) {
+    Serial.println("DemoFlag2!");
+    demoFlag2 = false;
+    return true;
+  }
 }
 
 void respond_to_DemoModeTrigger(void)
@@ -504,12 +508,18 @@ bool disableButtonPressed(void)
   if (state_CURR_button == HIGH && state_PREV_button == LOW && millis() - time1 > debounce) {
     Serial.println("button pressed!");
     time1 = millis();
-    state_PREV_button = state_CURR_button;
     return true;    
-  } else {
-    state_PREV_button = state_CURR_button;
+  } else if (!demoFlag && state_CURR_button == HIGH && state_PREV_button == HIGH && millis() - time1 > demoTime){
+    Serial.println("demoMode!jn");
+    demoFlag = true;
+    demoFlag2 = true;
+    return false;
+  } else{
+    demoFlag = false;
     return false;
   }
+    state_PREV_button = state_CURR_button;
+
 }
 
 void respond_to_disableButton(void)
